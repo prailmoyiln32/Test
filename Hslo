@@ -4,22 +4,128 @@ local Workspace = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Anti-AFK Connection for Alt
+-- Anti-AFK Connection
 LocalPlayer.Idled:Connect(function()
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
     task.wait(0.05)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end)
 
--- Notification
-StarterGui:SetCore("SendNotification", {
-    Title = "Alt Account Ready",
-    Text = "Anti-AFK active. Waiting for Main account...",
-    Duration = 5
-})
+-- Cleanup existing GUI if running again
+if PlayerGui:FindFirstChild("DualFarmAltHub") then
+    PlayerGui.DualFarmAltHub:Destroy()
+end
 
--- Auto-response check for Dual Farm tag from Main
+-- Create Alt Hub GUI Frame
+local screenGui = Instance.new("ScreenGui", PlayerGui)
+screenGui.Name = "DualFarmAltHub"
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 260, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -130, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Active = true
+mainFrame.Draggable = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+local uiStroke = Instance.new("UIStroke", mainFrame)
+uiStroke.Color = Color3.fromRGB(60, 60, 60)
+uiStroke.Thickness = 2
+
+-- Title Bar
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Slap Battles Hub (Alt)"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 13
+title.BackgroundTransparency = 1
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel", mainFrame)
+statusLabel.Size = UDim2.new(0.9, 0, 0, 40)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 35)
+statusLabel.Text = "Status: Waiting for Main account..."
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 11
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextWrapped = true
+
+-- Toggle for Sky Mode on Alt
+local skyModeBtn = Instance.new("TextButton", mainFrame)
+skyModeBtn.Size = UDim2.new(0.9, 0, 0, 30)
+skyModeBtn.Position = UDim2.new(0.05, 0, 0, 80)
+skyModeBtn.Text = "Alt Sky Mode (60k): OFF"
+skyModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+skyModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+skyModeBtn.Font = Enum.Font.GothamBold
+skyModeBtn.TextSize = 11
+Instance.new("UICorner", skyModeBtn).CornerRadius = UDim.new(0, 6)
+
+-- Footer note
+local footer = Instance.new("TextLabel", mainFrame)
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -22)
+footer.Text = "Anti-AFK: Active"
+footer.TextColor3 = Color3.fromRGB(100, 220, 100)
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 10
+footer.BackgroundTransparency = 1
+
+-- Logic variables
+local altSkyActive = false
+local ALT_HEIGHT = 60000
+local altPlatform = nil
+
+skyModeBtn.MouseButton1Click:Connect(function()
+    altSkyActive = not altSkyActive
+    if altSkyActive then
+        skyModeBtn.Text = "Alt Sky Mode (60k): ON"
+        skyModeBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        
+        if not altPlatform then
+            altPlatform = Instance.new("Part")
+            altPlatform.Name = "AltSkyPlatform"
+            altPlatform.Size = Vector3.new(40, 2, 40)
+            altPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
+            altPlatform.Anchored = true
+            altPlatform.Transparency = 0.4
+            altPlatform.Parent = Workspace
+        end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+        end
+        statusLabel.Text = "Status: Alt secured in sky platform."
+    else
+        skyModeBtn.Text = "Alt Sky Mode (60k): OFF"
+        skyModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        if altPlatform then
+            altPlatform:Destroy()
+            altPlatform = nil
+        end
+        statusLabel.Text = "Status: Sky mode turned off."
+    end
+end)
+
+-- Maintain alt altitude if sky mode is on
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if altSkyActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local root = LocalPlayer.Character.HumanoidRootPart
+            if root.Position.Y < (ALT_HEIGHT - 100) then
+                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+            end
+        end
+    end
+end)
+
+-- Auto-response check for Main account Dual Farm signal
 task.spawn(function()
     while true do
         task.wait(2)
@@ -27,7 +133,7 @@ task.spawn(function()
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
                     if player.Character:FindFirstChild("DualFarmActiveTag") then
-                        -- Touch or interact with the dual table if close by
+                        statusLabel.Text = "Status: Connected to Main (" .. player.Name .. ")"
                         local dualPart = Workspace.Lobby.Dual
                         local cd = dualPart:FindFirstChildOfClass("ClickDetector")
                         if cd then
@@ -36,6 +142,12 @@ task.spawn(function()
                     end
                 end
             end
-        end
+        end)
     end
 end)
+
+StarterGui:SetCore("SendNotification", {
+    Title = "Alt Hub Loaded",
+    Text = "Anti-AFK and Auto-Receiver are running.",
+    Duration = 5
+})
