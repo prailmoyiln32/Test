@@ -1,0 +1,297 @@
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Cleanup existing GUI if running again
+if PlayerGui:FindFirstChild("DualFarmHub") then
+    PlayerGui.DualFarmHub:Destroy()
+end
+
+-- Create ScreenGui & Draggable Hub Frame
+local screenGui = Instance.new("ScreenGui", PlayerGui)
+screenGui.Name = "DualFarmHub"
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 310, 0, 310)
+mainFrame.Position = UDim2.new(0.5, -155, 0.5, -155)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Active = true
+mainFrame.Draggable = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+local uiStroke = Instance.new("UIStroke", mainFrame)
+uiStroke.Color = Color3.fromRGB(60, 60, 60)
+uiStroke.Thickness = 2
+
+-- Title Bar
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "Slap Battles Multi-Hub"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.BackgroundTransparency = 1
+
+-- === SECTION 1: DUAL FARM CONTROLS ===
+local dualLabel = Instance.new("TextLabel", mainFrame)
+dualLabel.Size = UDim2.new(0.9, 0, 0, 20)
+dualLabel.Position = UDim2.new(0.05, 0, 0, 35)
+dualLabel.Text = "--- Alt Dual Farm ---"
+dualLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+dualLabel.Font = Enum.Font.GothamBold
+dualLabel.TextSize = 11
+dualLabel.BackgroundTransparency = 1
+
+local textBox = Instance.new("TextBox", mainFrame)
+textBox.Size = UDim2.new(0.9, 0, 0, 30)
+textBox.Position = UDim2.new(0.05, 0, 0, 55)
+textBox.PlaceholderText = "Enter Alt Username..."
+textBox.Text = ""
+textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+textBox.Font = Enum.Font.Gotham
+textBox.TextSize = 12
+Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+
+local altModeBtn = Instance.new("TextButton", mainFrame)
+altModeBtn.Size = UDim2.new(0.9, 0, 0, 30)
+altModeBtn.Position = UDim2.new(0.05, 0, 0, 90)
+altModeBtn.Text = "Alt Sky Mode (60k Studs): OFF"
+altModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+altModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+altModeBtn.Font = Enum.Font.GothamBold
+altModeBtn.TextSize = 11
+Instance.new("UICorner", altModeBtn).CornerRadius = UDim.new(0, 6)
+
+local farmToggleBtn = Instance.new("TextButton", mainFrame)
+farmToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+farmToggleBtn.Position = UDim2.new(0.05, 0, 0, 125)
+farmToggleBtn.Text = "Start Dual Farm: OFF"
+farmToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+farmToggleBtn.Font = Enum.Font.GothamBold
+farmToggleBtn.TextSize = 12
+Instance.new("UICorner", farmToggleBtn).CornerRadius = UDim.new(0, 6)
+
+
+-- === SECTION 2: STEALTH RANDOM SLAPPER CONTROLS ===
+local randomLabel = Instance.new("TextLabel", mainFrame)
+randomLabel.Size = UDim2.new(0.9, 0, 0, 20)
+randomLabel.Position = UDim2.new(0.05, 0, 0, 165)
+randomLabel.Text = "--- Stealth Random Slap ---"
+randomLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+randomLabel.Font = Enum.Font.GothamBold
+randomLabel.TextSize = 11
+randomLabel.BackgroundTransparency = 1
+
+local randomToggleBtn = Instance.new("TextButton", mainFrame)
+randomToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+randomToggleBtn.Position = UDim2.new(0.05, 0, 0, 185)
+randomToggleBtn.Text = "Random Stealth Slap: OFF"
+randomToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+randomToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+randomToggleBtn.Font = Enum.Font.GothamBold
+randomToggleBtn.TextSize = 12
+Instance.new("UICorner", randomToggleBtn).CornerRadius = UDim.new(0, 6)
+
+
+-- Status label at bottom
+local statusLabel = Instance.new("TextLabel", mainFrame)
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.Position = UDim2.new(0, 0, 1, -22)
+statusLabel.Text = "Status: Idle"
+statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 11
+statusLabel.BackgroundTransparency = 1
+
+-- Logic Variables
+local altSkyActive = false
+local farmingActive = false
+local randomSlapActive = false
+local ALT_HEIGHT = 60000
+local safetyPlatform = nil
+
+-- 1. Alt Sky Setup & Platform
+altModeBtn.MouseButton1Click:Connect(function()
+    altSkyActive = not altSkyActive
+    if altSkyActive then
+        altModeBtn.Text = "Alt Sky Mode (60k Studs): ON"
+        altModeBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        
+        if not safetyPlatform then
+            safetyPlatform = Instance.new("Part")
+            safetyPlatform.Name = "HubAltPlatform"
+            safetyPlatform.Size = Vector3.new(50, 2, 50)
+            safetyPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
+            safetyPlatform.Anchored = true
+            safetyPlatform.Transparency = 0.4
+            safetyPlatform.Parent = Workspace
+        end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+        end
+        statusLabel.Text = "Status: Alt sent to sky platform."
+    else
+        altModeBtn.Text = "Alt Sky Mode (60k Studs): OFF"
+        altModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        if safetyPlatform then
+            safetyPlatform:Destroy()
+            safetyPlatform = nil
+        end
+        statusLabel.Text = "Status: Sky mode disabled."
+    end
+end)
+
+-- Sky Loop for Alt safety
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if altSkyActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local root = LocalPlayer.Character.HumanoidRootPart
+            if root.Position.Y < (ALT_HEIGHT - 100) then
+                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+            end
+        end
+    end
+end)
+
+local function updateMainTag(active)
+    local char = LocalPlayer.Character
+    if char then
+        local tag = char:FindFirstChild("DualFarmActiveTag")
+        if active then
+            if not tag then
+                tag = Instance.new("BoolValue")
+                tag.Name = "DualFarmActiveTag"
+                tag.Parent = char
+            end
+        else
+            if tag then tag:Destroy() end
+        end
+    end
+end
+
+-- 2. Dual Farm Activation & Teleport Loop
+farmToggleBtn.MouseButton1Click:Connect(function()
+    farmingActive = not farmingActive
+    if farmingActive then
+        farmToggleBtn.Text = "Start Dual Farm: ON"
+        farmToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        updateMainTag(true)
+        
+        pcall(function()
+            local dualPart = Workspace.Lobby.Dual
+            local cd = dualPart:FindFirstChildOfClass("ClickDetector")
+            if cd then
+                fireclickdetector(cd)
+            end
+        end)
+        statusLabel.Text = "Status: Dual farm active."
+    else
+        farmToggleBtn.Text = "Start Dual Farm: OFF"
+        farmToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        updateMainTag(false)
+        statusLabel.Text = "Status: Dual farm stopped."
+    end
+end)
+
+-- Dual Farm Main Loop (9 slaps, 3s pause)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if farmingActive and textBox.Text ~= "" then
+            local altName = textBox.Text
+            local altPlayer = Players:FindFirstChild(altName)
+            
+            if altPlayer and altPlayer.Character and LocalPlayer.Character then
+                local altRoot = altPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                
+                if altRoot and myRoot then
+                    altRoot.CFrame = myRoot.CFrame * CFrame.new(0, 0, -3)
+                    altRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    
+                    local generalHitRemote = ReplicatedStorage:FindFirstChild("GeneralHit")
+                    if generalHitRemote then
+                        statusLabel.Text = "Status: Slapping alt (9 hits)..."
+                        for i = 1, 9 do
+                            if not farmingActive then break end
+                            generalHitRemote:FireServer(altRoot)
+                            task.wait(0.2)
+                        end
+                        if farmingActive then
+                            statusLabel.Text = "Status: Pausing for 3 seconds..."
+                            task.wait(3)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- 3. Stealth Random Slapper Toggle & Loop (Overhead Skybox Blindspot Method)
+randomToggleBtn.MouseButton1Click:Connect(function()
+    randomSlapActive = not randomSlapActive
+    if randomSlapActive then
+        randomToggleBtn.Text = "Random Stealth Slap: ON"
+        randomToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        statusLabel.Text = "Status: Stealth overhead random slapping enabled."
+    else
+        randomToggleBtn.Text = "Random Stealth Slap: OFF"
+        randomToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        statusLabel.Text = "Status: Stealth random slapping stopped."
+    end
+end)
+
+task.spawn(function()
+    math.randomseed(tick())
+    while true do
+        task.wait(math.random(5, 10)) -- Random natural delay between attacks
+        if randomSlapActive then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local myRoot = character.HumanoidRootPart
+                local originalPos = myRoot.CFrame
+                
+                local validTargets = {}
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                        local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                        if targetRoot and targetHumanoid and targetHumanoid.Health > 0 then
+                            table.insert(validTargets, targetRoot)
+                        end
+                    end
+                end
+                
+                if #validTargets > 0 then
+                    local chosenTarget = validTargets[math.random(1, #validTargets)]
+                    local generalHitRemote = ReplicatedStorage:FindFirstChild("GeneralHit")
+                    
+                    if generalHitRemote and chosenTarget then
+                        statusLabel.Text = "Status: Striking target from above..."
+                        
+                        -- Flash 25 studs directly up into the skybox blindspot
+                        myRoot.CFrame = chosenTarget.CFrame * CFrame.new(0, 25, 0)
+                        myRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        
+                        task.wait(0.05)
+                        generalHitRemote:FireServer(chosenTarget)
+                        task.wait(0.05)
+                        
+                        -- Instantly snap back to safety spot
+                        myRoot.CFrame = originalPos
+                        myRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    end
+                end
+            end
+        end
+    end
+end)
