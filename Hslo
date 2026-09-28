@@ -24,7 +24,7 @@ screenGui.Name = "DualFarmAltHub"
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 260, 0, 180)
+mainFrame.Size = UDim2.new(0, 260, 0, 160)
 mainFrame.Position = UDim2.new(0.5, -130, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.Active = true
@@ -48,29 +48,17 @@ title.BackgroundTransparency = 1
 local statusLabel = Instance.new("TextLabel", mainFrame)
 statusLabel.Size = UDim2.new(0.9, 0, 0, 40)
 statusLabel.Position = UDim2.new(0.05, 0, 0, 30)
-statusLabel.Text = "Status: Ready. Type Main name below if needed."
+statusLabel.Text = "Status: Ready. Click Sky Mode to spam-teleport up."
 statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 11
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextWrapped = true
 
--- Main Username Target Box for Alt
-local mainUserBox = Instance.new("TextBox", mainFrame)
-mainUserBox.Size = UDim2.new(0.9, 0, 0, 26)
-mainUserBox.Position = UDim2.new(0.05, 0, 0, 75)
-mainUserBox.PlaceholderText = "Enter Main Username..."
-mainUserBox.Text = ""
-mainUserBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-mainUserBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-mainUserBox.Font = Enum.Font.Gotham
-mainUserBox.TextSize = 12
-Instance.new("UICorner", mainUserBox).CornerRadius = UDim.new(0, 6)
-
 -- Toggle for Sky Mode on Alt
 local skyModeBtn = Instance.new("TextButton", mainFrame)
-skyModeBtn.Size = UDim2.new(0.9, 0, 0, 28)
-skyModeBtn.Position = UDim2.new(0.05, 0, 0, 108)
+skyModeBtn.Size = UDim2.new(0.9, 0, 0, 32)
+skyModeBtn.Position = UDim2.new(0.05, 0, 0, 80)
 skyModeBtn.Text = "Alt Sky Mode (60k): OFF"
 skyModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 skyModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
@@ -82,7 +70,7 @@ Instance.new("UICorner", skyModeBtn).CornerRadius = UDim.new(0, 6)
 local footer = Instance.new("TextLabel", mainFrame)
 footer.Size = UDim2.new(1, 0, 0, 20)
 footer.Position = UDim2.new(0, 0, 1, -20)
-footer.Text = "Anti-AFK & Auto-Aligner Active"
+footer.Text = "Anti-AFK & Spam-Teleport Active"
 footer.TextColor3 = Color3.fromRGB(100, 220, 100)
 footer.Font = Enum.Font.Gotham
 footer.TextSize = 10
@@ -98,83 +86,59 @@ skyModeBtn.MouseButton1Click:Connect(function()
     if altSkyActive then
         skyModeBtn.Text = "Alt Sky Mode (60k): ON"
         skyModeBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
-        
-        if not altPlatform then
-            altPlatform = Instance.new("Part")
-            altPlatform.Name = "AltSkyPlatform"
-            altPlatform.Size = Vector3.new(40, 2, 40)
-            altPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
-            altPlatform.Anchored = true
-            altPlatform.Transparency = 0.4
-            altPlatform.Parent = Workspace
-        end
-        
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-        end
-        statusLabel.Text = "Status: Alt secured in sky platform."
+        statusLabel.Text = "Status: Spam-teleporting to sky platform!"
     else
         skyModeBtn.Text = "Alt Sky Mode (60k): OFF"
         skyModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        
         if altPlatform then
             altPlatform:Destroy()
             altPlatform = nil
         end
+        
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.Anchored = false
+        end
+        
         statusLabel.Text = "Status: Sky mode turned off."
     end
 end)
 
--- Maintain alt altitude if sky mode is on
+-- Spam-teleport and Platform Maintenence Loop
 task.spawn(function()
     while true do
-        task.wait(1)
-        if altSkyActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local root = LocalPlayer.Character.HumanoidRootPart
-            if root.Position.Y < (ALT_HEIGHT - 100) then
-                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+        task.wait(0.2) -- Fast loop to spam-teleport if necessary
+        if altSkyActive then
+            -- Ensure platform always exists
+            if not altPlatform or not altPlatform.Parent then
+                altPlatform = Instance.new("Part")
+                altPlatform.Name = "AltSkyPlatform"
+                altPlatform.Size = Vector3.new(50, 2, 50)
+                altPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
+                altPlatform.Anchored = true
+                altPlatform.Transparency = 0.3
+                altPlatform.BrickColor = BrickColor.new("Really black")
+                altPlatform.Parent = Workspace
             end
-        end
-    end
-end)
-
--- Helper to find player by partial name
-local function getPlayer(nameInput)
-    if nameInput == "" then return nil end
-    nameInput = nameInput:lower()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if player.Name:lower():sub(1, #nameInput) == nameInput or player.DisplayName:lower():sub(1, #nameInput) == nameInput then
-                return player
-            end
-        end
-    end
-    return nil
-end
-
--- Auto-sync loop: Follows the main player closely or positions for the farm
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        pcall(function()
-            local mainPlayer = getPlayer(mainUserBox.Text)
-            if mainPlayer and mainPlayer.Character and LocalPlayer.Character then
-                local mainRoot = mainPlayer.Character:FindFirstChild("HumanoidRootPart")
-                local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                
-                if mainRoot and myRoot and not altSkyActive then
-                    -- Position Alt directly facing the main account's incoming hits
-                    local desiredCFrame = mainRoot.CFrame * CFrame.new(0, 0, -3)
-                    myRoot.CFrame = desiredCFrame
-                    myRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    statusLabel.Text = "Status: Synced with Main (" .. mainPlayer.Name .. ")"
+            
+            -- Keep alt glued/teleported to the platform continuously
+            local char = LocalPlayer.Character
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    if math.abs(root.Position.Y - ALT_HEIGHT) > 20 then
+                        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    end
                 end
             end
-        end)
+        end
     end
 end)
 
 StarterGui:SetCore("SendNotification", {
     Title = "Alt Hub Loaded",
-    Text = "Enter your Main account username in the alt box to lock-in sync.",
+    Text = "Turn on Sky Mode to begin spam-teleporting to the 60k platform.",
     Duration = 5
 })
