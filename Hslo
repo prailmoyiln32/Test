@@ -48,14 +48,14 @@ title.BackgroundTransparency = 1
 local statusLabel = Instance.new("TextLabel", mainFrame)
 statusLabel.Size = UDim2.new(0.9, 0, 0, 40)
 statusLabel.Position = UDim2.new(0.05, 0, 0, 30)
-statusLabel.Text = "Status: Ready. Click Sky Mode to spam-teleport up."
+statusLabel.Text = "Status: Ready. Click Alt Sky Mode to start."
 statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 11
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextWrapped = true
 
--- Toggle for Sky Mode on Alt
+-- Toggle for Alt Sky Mode
 local skyModeBtn = Instance.new("TextButton", mainFrame)
 skyModeBtn.Size = UDim2.new(0.9, 0, 0, 32)
 skyModeBtn.Position = UDim2.new(0.05, 0, 0, 80)
@@ -86,7 +86,7 @@ skyModeBtn.MouseButton1Click:Connect(function()
     if altSkyActive then
         skyModeBtn.Text = "Alt Sky Mode (60k): ON"
         skyModeBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
-        statusLabel.Text = "Status: Spam-teleporting to sky platform!"
+        statusLabel.Text = "Status: Spam-teleporting to Alt platform!"
     else
         skyModeBtn.Text = "Alt Sky Mode (60k): OFF"
         skyModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
@@ -95,25 +95,19 @@ skyModeBtn.MouseButton1Click:Connect(function()
             altPlatform:Destroy()
             altPlatform = nil
         end
-        
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.Anchored = false
-        end
-        
         statusLabel.Text = "Status: Sky mode turned off."
     end
 end)
 
--- Spam-teleport and Platform Maintenence Loop
+-- Aggressive Spam-Teleport and Independent Platform Loop
 task.spawn(function()
     while true do
-        task.wait(0.2) -- Fast loop to spam-teleport if necessary
+        task.wait(0.1) -- Super fast check to spam-teleport instantly
         if altSkyActive then
-            -- Ensure platform always exists
+            -- Make sure the Alt's own separate platform always exists
             if not altPlatform or not altPlatform.Parent then
                 altPlatform = Instance.new("Part")
-                altPlatform.Name = "AltSkyPlatform"
+                altPlatform.Name = "PrivateAltPlatform"
                 altPlatform.Size = Vector3.new(50, 2, 50)
                 altPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
                 altPlatform.Anchored = true
@@ -122,15 +116,13 @@ task.spawn(function()
                 altPlatform.Parent = Workspace
             end
             
-            -- Keep alt glued/teleported to the platform continuously
+            -- Constantly force teleport Alt to its own platform (regardless of void, fall, or reset)
             local char = LocalPlayer.Character
             if char then
                 local root = char:FindFirstChild("HumanoidRootPart")
                 if root then
-                    if math.abs(root.Position.Y - ALT_HEIGHT) > 20 then
-                        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    end
+                    root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+                    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
             end
         end
@@ -139,6 +131,6 @@ end)
 
 StarterGui:SetCore("SendNotification", {
     Title = "Alt Hub Loaded",
-    Text = "Turn on Sky Mode to begin spam-teleporting to the 60k platform.",
+    Text = "Turn on Alt Sky Mode to spam-teleport onto its private platform.",
     Duration = 5
 })
