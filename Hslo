@@ -1,94 +1,38 @@
 -- Services
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
-local ALT_HEIGHT = 60000
-local safetyPlatform = nil
-
--- Anti-AFK Protection
+-- Anti-AFK Connection for Alt
 LocalPlayer.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    task.wait(0.05)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end)
 
--- Build safety platform high in the sky
-local function createPlatform()
-    if not safetyPlatform then
-        safetyPlatform = Instance.new("Part")
-        safetyPlatform.Name = "AltSafetyPlatform"
-        safetyPlatform.Size = Vector3.new(50, 2, 50)
-        safetyPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
-        safetyPlatform.Anchored = true
-        safetyPlatform.Transparency = 0.4
-        safetyPlatform.Parent = Workspace
-    end
-end
+-- Notification
+StarterGui:SetCore("SendNotification", {
+    Title = "Alt Account Ready",
+    Text = "Anti-AFK active. Waiting for Main account...",
+    Duration = 5
+})
 
-createPlatform()
-
-local function setupAlt(character)
-    local root = character:WaitForChild("HumanoidRootPart", 5)
-    if root then
-        task.wait(0.5)
-        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-    end
-end
-
-if LocalPlayer.Character then
-    setupAlt(LocalPlayer.Character)
-end
-
-LocalPlayer.CharacterAdded:Connect(setupAlt)
-
--- Alt Background Loop: Sky Platform Recovery & Main Sync
+-- Auto-response check for Dual Farm tag from Main
 task.spawn(function()
-    local ragdollCooldown = 0
-    
     while true do
-        task.wait(0.05)
-        local myChar = LocalPlayer.Character
-        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            local root = myChar.HumanoidRootPart
-            local humanoid = myChar:FindFirstChildOfClass("Humanoid")
-            
-            -- Check for ragdoll, low health, or extreme knockback velocity
-            local isRagdolled = false
-            if humanoid and (humanoid.PlatformStand or myChar:FindFirstChild("Ragdoll") or humanoid.Health <= 0) then
-                isRagdolled = true
-            end
-            
-            if isRagdolled or root.AssemblyLinearVelocity.Magnitude > 100 then
-                ragdollCooldown = tick() + 1.5 -- Lock recovery for 1.5 seconds on the sky platform
-                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            elseif tick() < ragdollCooldown then
-                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            else
-                -- Check if main player is active
-                local foundActiveMain = false
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        if player.Character:FindFirstChild("DualFarmActiveTag") then
-                            foundActiveMain = true
-                            local mainRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                            if mainRoot then
-                                root.CFrame = mainRoot.CFrame * CFrame.new(0, 0, -3)
-                                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                            end
-                            break
+        task.wait(2)
+        pcall(function()
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    if player.Character:FindFirstChild("DualFarmActiveTag") then
+                        -- Touch or interact with the dual table if close by
+                        local dualPart = Workspace.Lobby.Dual
+                        local cd = dualPart:FindFirstChildOfClass("ClickDetector")
+                        if cd then
+                            fireclickdetector(cd)
                         end
-                    end
-                end
-                
-                -- If no main is active, stay safe on the sky platform
-                if not foundActiveMain then
-                    if root.Position.Y < (ALT_HEIGHT - 100) then
-                        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                     end
                 end
             end
