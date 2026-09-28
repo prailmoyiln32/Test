@@ -43,50 +43,53 @@ end
 
 LocalPlayer.CharacterAdded:Connect(setupAlt)
 
--- Alt Background Loop: Ragdoll recovery spam, baseplate center snap, and main sync
+-- Alt Background Loop: Sky Platform Recovery & Main Sync
 task.spawn(function()
+    local ragdollCooldown = 0
+    
     while true do
-        task.wait(0.1)
+        task.wait(0.05)
         local myChar = LocalPlayer.Character
         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
             local root = myChar.HumanoidRootPart
             local humanoid = myChar:FindFirstChildOfClass("Humanoid")
             
-            -- Check for ragdoll or extreme knockback velocity
+            -- Check for ragdoll, low health, or extreme knockback velocity
             local isRagdolled = false
-            if humanoid and (humanoid.PlatformStand or myChar:FindFirstChild("Ragdoll")) then
+            if humanoid and (humanoid.PlatformStand or myChar:FindFirstChild("Ragdoll") or humanoid.Health <= 0) then
                 isRagdolled = true
             end
             
             if isRagdolled or root.AssemblyLinearVelocity.Magnitude > 100 then
-                -- Teleport spam instantly to baseplate center to recover safely
-                for i = 1, 3 do
-                    root.CFrame = CFrame.new(0, 5, 0)
-                    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    task.wait(0.05)
-                end
-            end
-            
-            -- Check if main player is active
-            local foundActiveMain = false
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    if player.Character:FindFirstChild("DualFarmActiveTag") then
-                        foundActiveMain = true
-                        local mainRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                        if mainRoot and not isRagdolled then
-                            root.CFrame = mainRoot.CFrame * CFrame.new(0, 0, -3)
-                            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                ragdollCooldown = tick() + 1.5 -- Lock recovery for 1.5 seconds on the sky platform
+                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            elseif tick() < ragdollCooldown then
+                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            else
+                -- Check if main player is active
+                local foundActiveMain = false
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        if player.Character:FindFirstChild("DualFarmActiveTag") then
+                            foundActiveMain = true
+                            local mainRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                            if mainRoot then
+                                root.CFrame = mainRoot.CFrame * CFrame.new(0, 0, -3)
+                                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            end
+                            break
                         end
-                        break
                     end
                 end
-            end
-            
-            -- If no main is active, keep alt secure on sky platform
-            if not foundActiveMain then
-                if root.Position.Y < (ALT_HEIGHT - 100) then
-                    root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+                
+                -- If no main is active, stay safe on the sky platform
+                if not foundActiveMain then
+                    if root.Position.Y < (ALT_HEIGHT - 100) then
+                        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    end
                 end
             end
         end
