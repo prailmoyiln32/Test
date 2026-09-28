@@ -1,95 +1,459 @@
 -- Services
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local ALT_HEIGHT = 60000
-local safetyPlatform = nil
-
--- Anti-AFK Protection
+-- Anti-AFK Connection
 LocalPlayer.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    task.wait(0.05)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
 end)
 
--- Build safety platform high in the sky
-local function createPlatform()
-    if not safetyPlatform then
-        safetyPlatform = Instance.new("Part")
-        safetyPlatform.Name = "AltSafetyPlatform"
-        safetyPlatform.Size = Vector3.new(50, 2, 50)
-        safetyPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
-        safetyPlatform.Anchored = true
-        safetyPlatform.Transparency = 0.4
-        safetyPlatform.Parent = Workspace
+-- Cleanup existing GUI if running again
+if PlayerGui:FindFirstChild("DualFarmHub") then
+    PlayerGui.DualFarmHub:Destroy()
+end
+
+-- Create ScreenGui & Draggable Hub Frame
+local screenGui = Instance.new("ScreenGui", PlayerGui)
+screenGui.Name = "DualFarmHub"
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 320, 0, 430)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -215)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Active = true
+mainFrame.Draggable = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+local uiStroke = Instance.new("UIStroke", mainFrame)
+uiStroke.Color = Color3.fromRGB(60, 60, 60)
+uiStroke.Thickness = 2
+
+-- Title Bar
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Slap Battles Multi-Hub (Main)"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.BackgroundTransparency = 1
+
+-- === SECTION 1: DUAL FARM CONTROLS ===
+local dualLabel = Instance.new("TextLabel", mainFrame)
+dualLabel.Size = UDim2.new(0.9, 0, 0, 20)
+dualLabel.Position = UDim2.new(0.05, 0, 0, 30)
+dualLabel.Text = "--- Alt Dual Farm ---"
+dualLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+dualLabel.Font = Enum.Font.GothamBold
+dualLabel.TextSize = 11
+dualLabel.BackgroundTransparency = 1
+
+local textBox = Instance.new("TextBox", mainFrame)
+textBox.Size = UDim2.new(0.9, 0, 0, 26)
+textBox.Position = UDim2.new(0.05, 0, 0, 50)
+textBox.PlaceholderText = "Enter Alt Username..."
+textBox.Text = ""
+textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+textBox.Font = Enum.Font.Gotham
+textBox.TextSize = 12
+Instance.new("UICorner", textBox).CornerRadius = UDim.new(0, 6)
+
+local altModeBtn = Instance.new("TextButton", mainFrame)
+altModeBtn.Size = UDim2.new(0.9, 0, 0, 26)
+altModeBtn.Position = UDim2.new(0.05, 0, 0, 80)
+altModeBtn.Text = "Alt Sky Mode (60k Studs): OFF"
+altModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+altModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+altModeBtn.Font = Enum.Font.GothamBold
+altModeBtn.TextSize = 11
+Instance.new("UICorner", altModeBtn).CornerRadius = UDim.new(0, 6)
+
+local farmToggleBtn = Instance.new("TextButton", mainFrame)
+farmToggleBtn.Size = UDim2.new(0.9, 0, 0, 30)
+farmToggleBtn.Position = UDim2.new(0.05, 0, 0, 110)
+farmToggleBtn.Text = "Start Dual Farm: OFF"
+farmToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+farmToggleBtn.Font = Enum.Font.GothamBold
+farmToggleBtn.TextSize = 12
+Instance.new("UICorner", farmToggleBtn).CornerRadius = UDim.new(0, 6)
+
+-- === SECTION 2: GLOVE CHECKER & SEARCH BAR ===
+local gloveLabel = Instance.new("TextLabel", mainFrame)
+gloveLabel.Size = UDim2.new(0.9, 0, 0, 20)
+gloveLabel.Position = UDim2.new(0.05, 0, 0, 145)
+gloveLabel.Text = "--- Glove Checker & Search ---"
+gloveLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+gloveLabel.Font = Enum.Font.GothamBold
+gloveLabel.TextSize = 11
+gloveLabel.BackgroundTransparency = 1
+
+local searchBox = Instance.new("TextBox", mainFrame)
+searchBox.Size = UDim2.new(0.9, 0, 0, 26)
+searchBox.Position = UDim2.new(0.05, 0, 0, 165)
+searchBox.PlaceholderText = "Search glove name (e.g. Thanos)..."
+searchBox.Text = ""
+searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 12
+Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 6)
+
+-- Scrollable Results View for Gloves
+local scrollFrame = Instance.new("ScrollingFrame", mainFrame)
+scrollFrame.Size = UDim2.new(0.9, 0, 0, 175)
+scrollFrame.Position = UDim2.new(0.05, 0, 0, 195)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Instance.new("UICorner", scrollFrame).CornerRadius = UDim.new(0, 6)
+
+local uiListLayout = Instance.new("UIListLayout", scrollFrame)
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 4)
+
+-- Status label at bottom
+local statusLabel = Instance.new("TextLabel", mainFrame)
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.Position = UDim2.new(0, 0, 1, -22)
+statusLabel.Text = "Status: Idle (Anti-AFK Active)"
+statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 11
+statusLabel.BackgroundTransparency = 1
+
+-- Logic Variables
+local altSkyActive = false
+local farmingActive = false
+local ALT_HEIGHT = 60000
+local safetyPlatform = nil
+local verifiedAltPlayer = nil
+
+-- Complete Glove Database
+local gloveMilestones = {
+    {name = "spin", cost = -3},
+    {name = "Default", cost = 0},
+    {name = "Dual", cost = 10},
+    {name = "Diamond", cost = 45},
+    {name = "ZZZZZZ", cost = 70},
+    {name = "Extended", cost = 105},
+    {name = "Brick", cost = 150},
+    {name = "Snow", cost = 195},
+    {name = "Pull", cost = 250},
+    {name = "Flash", cost = 315},
+    {name = "Spring", cost = 380},
+    {name = "Swapper", cost = 420},
+    {name = "Bull", cost = 520},
+    {name = "Dice", cost = 585},
+    {name = "Ghost", cost = 666},
+    {name = "Thanos", cost = 795},
+    {name = "Stun", cost = 870},
+    {name = "L.O.L.B.O.M.B.", cost = 925},
+    {name = "Za Hando", cost = 1000},
+    {name = "Fort", cost = 1075},
+    {name = "Magnet", cost = 1125},
+    {name = "Pusher", cost = 1250},
+    {name = "Anchor", cost = 1350},
+    {name = "Space", cost = 1500},
+    {name = "Boomerang", cost = 1625},
+    {name = "Speedrun", cost = 1750},
+    {name = "Mail", cost = 2000},
+    {name = "T H I C K", cost = 2250},
+    {name = "Golden", cost = 2500},
+    {name = "Squid", cost = 2750},
+    {name = "MR", cost = 3000},
+    {name = "Hive", cost = 3250},
+    {name = "Reaper", cost = 3500},
+    {name = "Baby", cost = 3750},
+    {name = "Replica", cost = 4000},
+    {name = "Mace", cost = 4250},
+    {name = "Defense", cost = 4500},
+    {name = "Killstreak", cost = 5000},
+    {name = "Reverse", cost = 5500},
+    {name = "Shukuchi", cost = 6000},
+    {name = "Duelist", cost = 6500},
+    {name = "woah", cost = 7000},
+    {name = "Ice", cost = 7500},
+    {name = "Gummy", cost = 7750},
+    {name = "Adios", cost = 8000},
+    {name = "Blocked", cost = 8500},
+    {name = "Divert", cost = 8750},
+    {name = "Engineer", cost = 9000},
+    {name = "Rocky", cost = 9500},
+    {name = "Coil", cost = 9750},
+    {name = "Conveyor", cost = 10000},
+    {name = "Balloony", cost = 10500},
+    {name = "Phantom", cost = 11000},
+    {name = "el gato", cost = 11500},
+    {name = "Wormhole", cost = 12000},
+    {name = "Shackle", cost = 12500},
+    {name = "STOP", cost = 13000},
+    {name = "Equalizer", cost = 13500},
+    {name = "Track", cost = 14000},
+    {name = "Stalker", cost = 14500},
+    {name = "Prop", cost = 15000},
+    {name = "Cherry", cost = 15500},
+    {name = "Shield", cost = 16000},
+    {name = "Booster", cost = 17000},
+    {name = "Ping Pong", cost = 18000},
+    {name = "Baller", cost = 19000},
+    {name = "Home Run", cost = 20000},
+    {name = "Whirlwind", cost = 21000},
+    {name = "Slicer", cost = 22000},
+    {name = "Excavator", cost = 23000},
+    {name = "Nightmare", cost = 24000},
+    {name = "Thor", cost = 25000},
+    {name = "Pocket", cost = 26000},
+    {name = "Grapple", cost = 27000},
+    {name = "Cloud", cost = 28000},
+    {name = "Gravity", cost = 29000},
+    {name = "Parry", cost = 30000},
+    {name = "Jebaited", cost = 31000},
+    {name = "Meteor", cost = 32000},
+    {name = "Oven", cost = 33000},
+    {name = "Guardian Angel", cost = 34000},
+    {name = "Sun", cost = 35000},
+    {name = "Ferryman", cost = 36000},
+    {name = "Blackhole", cost = 37000},
+    {name = "Blink", cost = 38000},
+    {name = "Tableflip", cost = 39000},
+    {name = "Slapstick", cost = 40000},
+    {name = "Beatdown", cost = 41000},
+    {name = "Chicken", cost = 42000},
+    {name = "BONK", cost = 43000},
+    {name = "Sbeve", cost = 44000},
+    {name = "Golem", cost = 45000},
+    {name = "Grab", cost = 46000},
+    {name = "UFO", cost = 47000},
+    {name = "Demolition", cost = 48000},
+    {name = "Beachball", cost = 49000},
+    {name = "Shotgun", cost = 50000},
+    {name = "Error", cost = 50000},
+    {name = "64", cost = 51000},
+    {name = "Roguelike", cost = 52000},
+    {name = "Barrel", cost = 53000},
+    {name = "Lawnmower", cost = 54000},
+    {name = "Virus", cost = 55000},
+    {name = "Infinity", cost = 56000},
+    {name = "Aggro", cost = 57000},
+    {name = "God’s Hand", cost = 60000},
+    {name = "The Flex", cost = 100000}
+}
+
+local notifiedGloves = {}
+
+local function refreshGloveList()
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child:Destroy()
+        end
     end
-end
-
-createPlatform()
-
-local function setupAlt(character)
-    local root = character:WaitForChild("HumanoidRootPart", 5)
-    if root then
-        task.wait(0.5)
-        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-    end
-end
-
-if LocalPlayer.Character then
-    setupAlt(LocalPlayer.Character)
-end
-
-LocalPlayer.CharacterAdded:Connect(setupAlt)
-
--- Alt Background Loop: Sky Platform Recovery & Main Sync
-task.spawn(function()
-    local ragdollCooldown = 0
     
-    while true do
-        task.wait(0.05)
-        local myChar = LocalPlayer.Character
-        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            local root = myChar.HumanoidRootPart
-            local humanoid = myChar:FindFirstChildOfClass("Humanoid")
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    local currentSlaps = leaderstats and leaderstats:FindFirstChild("Slaps") and leaderstats.Slaps.Value or 0
+    local query = searchBox.Text:lower()
+    
+    for _, glove in ipairs(gloveMilestones) do
+        if query == "" or glove.name:lower():find(query) then
+            local isUnlocked = currentSlaps >= glove.cost
             
-            -- Check for ragdoll, low health, or extreme knockback velocity
-            local isRagdolled = false
-            if humanoid and (humanoid.PlatformStand or myChar:FindFirstChild("Ragdoll") or humanoid.Health <= 0) then
-                isRagdolled = true
+            local itemLabel = Instance.new("TextLabel", scrollFrame)
+            itemLabel.Size = UDim2.new(1, -5, 0, 24)
+            itemLabel.BackgroundTransparency = 0.8
+            itemLabel.BackgroundColor3 = isUnlocked and Color3.fromRGB(40, 100, 40) or Color3.fromRGB(100, 40, 40)
+            itemLabel.Font = Enum.Font.Gotham
+            itemLabel.TextSize = 11
+            itemLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            itemLabel.TextXAlignment = Enum.TextXAlignment.Left
+            
+            if isUnlocked then
+                itemLabel.Text = "  [OWNED] " .. glove.name .. " (" .. glove.cost .. " slaps)"
+            else
+                itemLabel.Text = "  [LOCKED] " .. glove.name .. " (" .. glove.cost .. " slaps)"
             end
             
-            if isRagdolled or root.AssemblyLinearVelocity.Magnitude > 100 then
-                ragdollCooldown = tick() + 1.5 -- Lock recovery for 1.5 seconds on the sky platform
-                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            elseif tick() < ragdollCooldown then
-                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            else
-                -- Check if main player is active
-                local foundActiveMain = false
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        if player.Character:FindFirstChild("DualFarmActiveTag") then
-                            foundActiveMain = true
-                            local mainRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                            if mainRoot then
-                                root.CFrame = mainRoot.CFrame * CFrame.new(0, 0, -3)
-                                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                            end
-                            break
-                        end
+            Instance.new("UICorner", itemLabel).CornerRadius = UDim.new(0, 4)
+        end
+    end
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(refreshGloveList)
+
+task.spawn(function()
+    local leaderstats = LocalPlayer:WaitForChild("leaderstats", 10)
+    if leaderstats then
+        local slapsVal = leaderstats:WaitForChild("Slaps", 10)
+        if slapsVal then
+            for _, glove in ipairs(gloveMilestones) do
+                if slapsVal.Value >= glove.cost then
+                    notifiedGloves[glove.name] = true
+                end
+            end
+        end
+    end
+    refreshGloveList()
+    
+    while true do
+        task.wait(1)
+        refreshGloveList()
+        local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+        if leaderstats then
+            local slapsVal = leaderstats:FindFirstChild("Slaps")
+            if slapsVal then
+                local currentSlaps = slapsVal.Value
+                for _, glove in ipairs(gloveMilestones) do
+                    if not notifiedGloves[glove.name] and currentSlaps >= glove.cost then
+                        notifiedGloves[glove.name] = true
+                        StarterGui:SetCore("SendNotification", {
+                            Title = "🎉 Glove Unlocked!",
+                            Text = "You reached " .. currentSlaps .. " slaps and can now get '" .. glove.name .. "' (" .. glove.cost .. " slaps)!",
+                            Duration = 7
+                        })
                     end
                 end
+            end
+        end
+    end
+end)
+
+local function getTargetPlayer(nameInput)
+    nameInput = nameInput:lower()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if player.Name:lower():sub(1, #nameInput) == nameInput or player.DisplayName:lower():sub(1, #nameInput) == nameInput then
+                return player
+            end
+        end
+    end
+    return nil
+end
+
+altModeBtn.MouseButton1Click:Connect(function()
+    altSkyActive = not altSkyActive
+    if altSkyActive then
+        altModeBtn.Text = "Alt Sky Mode (60k Studs): ON"
+        altModeBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        
+        if not safetyPlatform then
+            safetyPlatform = Instance.new("Part")
+            safetyPlatform.Name = "HubAltPlatform"
+            safetyPlatform.Size = Vector3.new(50, 2, 50)
+            safetyPlatform.Position = Vector3.new(0, ALT_HEIGHT, 0)
+            safetyPlatform.Anchored = true
+            safetyPlatform.Transparency = 0.4
+            safetyPlatform.Parent = Workspace
+        end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+        end
+        statusLabel.Text = "Status: Alt sent to sky platform."
+    else
+        altModeBtn.Text = "Alt Sky Mode (60k Studs): OFF"
+        altModeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        if safetyPlatform then
+            safetyPlatform:Destroy()
+            safetyPlatform = nil
+        end
+        statusLabel.Text = "Status: Sky mode disabled."
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if altSkyActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local root = LocalPlayer.Character.HumanoidRootPart
+            if root.Position.Y < (ALT_HEIGHT - 100) then
+                root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
+            end
+        end
+    end
+end)
+
+local function updateMainTag(active)
+    local char = LocalPlayer.Character
+    if char then
+        local tag = char:FindFirstChild("DualFarmActiveTag")
+        if active then
+            if not tag then
+                tag = Instance.new("BoolValue")
+                tag.Name = "DualFarmActiveTag"
+                tag.Parent = char
+            end
+        else
+            if tag then tag:Destroy() end
+        end
+    end
+end
+
+farmToggleBtn.MouseButton1Click:Connect(function()
+    farmingActive = not farmingActive
+    if farmingActive then
+        local target = getTargetPlayer(textBox.Text)
+        if not target then
+            farmingActive = false
+            farmToggleBtn.Text = "Start Dual Farm: OFF"
+            farmToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+            statusLabel.Text = "Status: Alt username not found!"
+            return
+        end
+        
+        verifiedAltPlayer = target
+        farmToggleBtn.Text = "Start Dual Farm: ON"
+        farmToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+        updateMainTag(true)
+        
+        StarterGui:SetCore("SendNotification", {
+            Title = "Dual Farm Connected",
+            Text = "Detected & Verified Alt: " .. target.Name .. " (" .. target.DisplayName .. ")",
+            Duration = 5
+        })
+        statusLabel.Text = "Status: Alt verified (" .. target.Name .. ")"
+        
+        pcall(function()
+            local dualPart = Workspace.Lobby.Dual
+            local cd = dualPart:FindFirstChildOfClass("ClickDetector")
+            if cd then
+                fireclickdetector(cd)
+            end
+        end)
+    else
+        farmToggleBtn.Text = "Start Dual Farm: OFF"
+        farmToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        updateMainTag(false)
+        verifiedAltPlayer = nil
+        statusLabel.Text = "Status: Dual farm stopped."
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if farmingActive and verifiedAltPlayer and verifiedAltPlayer.Character and LocalPlayer.Character then
+            local altRoot = verifiedAltPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            
+            if altRoot and myRoot then
+                local targetPosition = altRoot.Position + (altRoot.CFrame.LookVector * 3)
+                myRoot.CFrame = CFrame.lookAt(targetPosition, altRoot.Position)
+                myRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 
-                -- If no main is active, stay safe on the sky platform
-                if not foundActiveMain then
-                    if root.Position.Y < (ALT_HEIGHT - 100) then
-                        root.CFrame = CFrame.new(0, ALT_HEIGHT + 5, 0)
-                        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    end
+                statusLabel.Text = "Status: Real left-click slapping Alt (9x)..."
+                for i = 1, 9 do
+                    if not farmingActive then break end
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                    task.wait(0.05)
+                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    task.wait(0.3)
                 end
             end
         end
